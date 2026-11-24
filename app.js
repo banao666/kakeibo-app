@@ -656,6 +656,14 @@
     $("#s-branch").value = S?.branch || "";
     $("#s-dir").value = S ? S.dir : "家計簿";
     $("#s-token").value = S?.token || "";
+    $("#s-ai").value = S?.ai || "";
+    aiLink();
+  }
+  // AI相談：claude.ai のダッシュボード（AIに相談つき）へのリンク。公開しているコードには書かず、端末ごとに設定する
+  function aiLink() {
+    const a = $("#ai-link"), u = S?.ai || "";
+    a.hidden = !/^https:\/\/claude\.ai\//.test(u);
+    if (!a.hidden) a.href = u; else a.removeAttribute("href");
   }
   let clearArmed = false;
   async function saveSettings() {
@@ -664,8 +672,11 @@
     const token = $("#s-token").value.trim();
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { msg.append(notice("err", "リポジトリは「持ち主/名前」の形で入れてください")); return; }
     if (!token) { msg.append(notice("err", "トークンを入れてください")); return; }
-    S = { repo, branch: $("#s-branch").value.trim() || "main", dir: $("#s-dir").value.trim().replace(/^\/|\/$/g, ""), token };
+    const ai = $("#s-ai").value.trim();
+    if (ai && !/^https:\/\/claude\.ai\//.test(ai)) { msg.append(notice("err", "AI相談のページは https://claude.ai/ で始まるリンクを入れてください")); return; }
+    S = { repo, branch: $("#s-branch").value.trim() || "main", dir: $("#s-dir").value.trim().replace(/^\/|\/$/g, ""), token, ai };
     const kept = store.set("settings", S);
+    aiLink();
     $("#s-save").disabled = true;
     try {
       await reload();
@@ -684,7 +695,7 @@
     }
     clearArmed = false; b.textContent = "この端末から接続情報を消す";
     store.del("settings"); store.del("last");
-    S = null; D = null; fillSettings();
+    S = null; D = null; fillSettings(); aiLink();
     clear($("#s-msg")).append(notice("ok", "消しました", "この端末には接続情報が残っていません。"));
     setStatus("未接続");
   }

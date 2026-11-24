@@ -17,6 +17,7 @@
 <header class="top">
   <div class="brand">家計簿</div>
   <div class="status" id="status" aria-live="polite"></div>
+  <a class="icon-btn" id="ai-link" target="_blank" rel="noopener noreferrer" hidden>AI相談</a>
   <button class="icon-btn" id="reload" type="button">再読み込み</button>
 </header>
 
@@ -174,6 +175,10 @@
       <div class="field">
         <label for="s-token">アクセストークン</label>
         <input class="input" id="s-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_...">
+      </div>
+      <div class="field">
+        <label for="s-ai">AI相談のページ（claude.aiのダッシュボードのリンク・なくても可）</label>
+        <input class="input" id="s-ai" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://claude.ai/...">
       </div>
       <div id="s-msg"></div>
       <button class="btn" id="s-save" type="button">保存して接続</button>
