@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.github.com; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2a78d6">
+<title>家計簿アプリ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">家計簿</div>
+  <div class="status" id="status" aria-live="polite"></div>
+  <button class="icon-btn" id="reload" type="button">再読み込み</button>
+</header>
+
+<main>
+  <!-- 入力 -->
+  <section class="view" id="view-input" aria-labelledby="h-input">
+    <h1 id="h-input">記帳</h1>
+    <div class="card">
+      <div class="seg" role="group" aria-label="種類">
+        <button type="button" data-mode="支出" aria-pressed="true">支出</button>
+        <button type="button" data-mode="収入" aria-pressed="false">収入</button>
+        <button type="button" data-mode="振替" aria-pressed="false">振替・引落</button>
+      </div>
+
+      <div class="field">
+        <label for="f-amount">金額</label>
+        <div class="amount-wrap">
+          <span class="yen" aria-hidden="true">¥</span>
+          <input class="input amount" id="f-amount" inputmode="numeric" autocomplete="off" placeholder="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-date">日付</label>
+        <input class="input" id="f-date" type="date">
+        <div class="quick">
+          <button type="button" class="chip sm" data-day="0">今日</button>
+          <button type="button" class="chip sm" data-day="-1">昨日</button>
+          <button type="button" class="chip sm" data-day="-2">おととい</button>
+        </div>
+      </div>
+
+      <div class="field" id="fld-account">
+        <label for="f-account">支払った口座・カード</label>
+        <select class="input" id="f-account"></select>
+      </div>
+
+      <div class="row-2" id="fld-transfer" hidden>
+        <div class="field">
+          <label for="f-from">出金元</label>
+          <select class="input" id="f-from"></select>
+        </div>
+        <div class="field">
+          <label for="f-to">入金先・カード</label>
+          <select class="input" id="f-to"></select>
+        </div>
+      </div>
+
+      <div class="field" id="fld-cat">
+        <span class="lbl" id="lbl-cat">カテゴリ</span>
+        <div class="chips" id="f-cats" role="group" aria-labelledby="lbl-cat"></div>
+        <input class="input mt8" id="f-cat-custom" placeholder="その他のカテゴリを入力" hidden>
+      </div>
+
+      <div class="field">
+        <label for="f-memo">メモ（店名・内容など）</label>
+        <input class="input" id="f-memo" autocomplete="off" placeholder="例: セブンイレブン 昼ごはん">
+      </div>
+
+      <div id="f-hint"></div>
+      <div id="f-dup"></div>
+      <pre class="preview" id="f-preview" aria-label="取引.csvに追加される行"></pre>
+      <button class="btn" id="f-submit" type="button" disabled>記帳する</button>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="card">
+      <h2>最近の記帳</h2>
+      <p class="desc">取引.csvの末尾から</p>
+      <ul class="txlist" id="recent"></ul>
+    </div>
+  </section>
+
+  <!-- ダッシュボード -->
+  <section class="view" id="view-dash" aria-labelledby="h-dash" hidden>
+    <h1 id="h-dash">ダッシュボード</h1>
+    <div class="monthbar" id="d-months" role="group" aria-label="表示する月"></div>
+    <div class="tiles" id="d-tiles"></div>
+    <div id="d-warn"></div>
+
+    <section class="card">
+      <h2 id="d-cat-title">カテゴリ別の支出</h2>
+      <p class="desc">振替を除く</p>
+      <div class="bars" id="d-cats"></div>
+    </section>
+
+    <section class="card">
+      <h2 id="d-daily-title">日別の支出</h2>
+      <p class="desc">棒をタップすると内訳が出ます（振替を除く）</p>
+      <div class="vchart" id="d-daily"></div>
+      <div class="daydetail" id="d-daydetail"></div>
+    </section>
+
+    <section class="card">
+      <h2>口座残高</h2>
+      <p class="desc">初期残高＋取引の増減。証券は入金ベース</p>
+      <div class="bars" id="d-accounts"></div>
+    </section>
+
+    <section class="card">
+      <h2>カード未払い</h2>
+      <p class="desc">基準額＋利用−入金−分割の未払い分で計算。チップは引落口座と引落日</p>
+      <div class="bars" id="d-cards"></div>
+    </section>
+
+    <section class="card">
+      <h2>分割払いの今後の請求</h2>
+      <p class="desc" id="d-inst-desc">分割払い.csvの「未払」。月をタップすると内訳が出ます</p>
+      <div class="bars inst" id="d-inst"></div>
+    </section>
+
+    <section class="card">
+      <h2 id="d-fuyou-title">扶養の壁</h2>
+      <p class="desc">給与.csvの今年の受取額。斜線は見込み</p>
+      <div id="d-fuyou"></div>
+    </section>
+  </section>
+
+  <!-- 明細 -->
+  <section class="view" id="view-tx" aria-labelledby="h-tx" hidden>
+    <h1 id="h-tx">明細</h1>
+    <div class="monthbar" id="t-months" role="group" aria-label="表示する月"></div>
+    <div class="field">
+      <label for="t-search">検索（メモ・口座・カテゴリ）</label>
+      <input class="input" id="t-search" type="search" autocomplete="off">
+    </div>
+    <div class="chips mb12" id="t-cats" role="group" aria-label="カテゴリで絞り込み"></div>
+    <div class="card">
+      <p class="desc" id="t-count"></p>
+      <ul class="txlist" id="t-list"></ul>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section class="view" id="view-settings" aria-labelledby="h-settings" hidden>
+    <h1 id="h-settings">設定</h1>
+    <div class="card">
+      <h2>GitHubとの接続</h2>
+      <p class="desc">ここに入れた内容はこの端末のブラウザの中にだけ保存されます。</p>
+      <div class="field">
+        <label for="s-repo">リポジトリ（持ち主/名前）</label>
+        <input class="input" id="s-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/repository">
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="s-branch">ブランチ</label>
+          <input class="input" id="s-branch" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="main">
+        </div>
+        <div class="field">
+          <label for="s-dir">フォルダ</label>
+          <input class="input" id="s-dir" autocomplete="off" spellcheck="false" placeholder="家計簿">
+        </div>
+      </div>
+      <div class="field">
+        <label for="s-token">アクセストークン</label>
+        <input class="input" id="s-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_...">
+      </div>
+      <div id="s-msg"></div>
+      <button class="btn" id="s-save" type="button">保存して接続</button>
+      <button class="btn danger" id="s-clear" type="button">この端末から接続情報を消す</button>
+    </div>
+
+    <div class="card">
+      <h2>トークンの作り方</h2>
+      <ol class="steps">
+        <li>GitHubの Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token</li>
+        <li>Repository access は <b>Only select repositories</b> で、家計簿のリポジトリだけを選ぶ</li>
+        <li>Permissions の <b>Contents</b> を <b>Read and write</b> にする（ほかは触らない）</li>
+        <li>作られた <span class="mono">github_pat_</span> で始まる文字列を上に貼る</li>
+      </ol>
+      <p class="desc">端末をなくしたときは、GitHubでそのトークンを削除すれば、このアプリからは何もできなくなります。</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="画面の切り替え">
+  <button type="button" data-view="input" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>記帳
+  </button>
+  <button type="button" data-view="dash">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>ダッシュボード
+  </button>
+  <button type="button" data-view="tx">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>明細
+  </button>
+  <button type="button" data-view="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>設定
+  </button>
+</nav>
+
+<div id="toast" role="status" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
