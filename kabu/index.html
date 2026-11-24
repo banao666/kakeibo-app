@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.github.com; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#008300">
+<title>株スクリーナー</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="kabu.css">
+</head>
+<body class="kabu">
+<header class="top">
+  <div class="brand">株スクリーナー</div>
+  <div class="status" id="status" aria-live="polite"></div>
+  <button class="icon-btn" id="reload" type="button">再読み込み</button>
+</header>
+
+<main>
+  <section class="view" id="view-screen" aria-label="スクリーニング">
+    <div class="seg two" role="group" aria-label="市場">
+      <button type="button" data-region="jp" aria-pressed="true">日本株</button>
+      <button type="button" data-region="us" aria-pressed="false">米国株</button>
+    </div>
+
+    <div class="field">
+      <label for="q">社名・コードで探す</label>
+      <input class="input" id="q" type="search" autocomplete="off" placeholder="例: トヨタ / 7203 / AAPL">
+    </div>
+
+    <div class="presets" id="presets" role="group" aria-label="条件の例"></div>
+    <p class="desc" id="preset-desc"></p>
+
+    <details class="card filters" id="filters">
+      <summary><span>条件を細かく決める</span><span class="badge" id="filter-count"></span></summary>
+      <div class="field" id="fld-mkt">
+        <span class="lbl" id="lbl-mkt">市場区分</span>
+        <div class="chips" id="mkts" role="group" aria-labelledby="lbl-mkt"></div>
+      </div>
+      <div class="field">
+        <label for="sector">業種</label>
+        <select class="input" id="sector"></select>
+      </div>
+      <div class="ranges" id="ranges"></div>
+      <label class="check"><input type="checkbox" id="only-star"> ★を付けた銘柄だけ</label>
+      <button class="btn secondary mt8" id="reset" type="button">条件をすべて外す</button>
+    </details>
+
+    <div class="sortbar">
+      <label for="sort">並べ替え</label>
+      <select class="input" id="sort"></select>
+    </div>
+
+    <p class="desc" id="count"></p>
+    <ul class="stocks" id="list"></ul>
+    <button class="btn secondary" id="more" type="button" hidden>さらに表示</button>
+    <p class="desc foot" id="source"></p>
+  </section>
+
+  <section class="view" id="view-settings" aria-label="設定" hidden>
+    <h1>設定</h1>
+    <div class="card">
+      <h2>データの置き場所</h2>
+      <p class="desc">家計簿アプリに登録したトークンを使います。そのトークンの対象リポジトリに、株データのリポジトリも追加してください。別のトークンを使う場合だけ下に入れます。</p>
+      <div class="field">
+        <label for="s-repo">株データのリポジトリ（持ち主/名前）</label>
+        <input class="input" id="s-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/repository">
+      </div>
+      <div class="field">
+        <label for="s-token">アクセストークン（空なら家計簿アプリのものを使う）</label>
+        <input class="input" id="s-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div id="s-msg"></div>
+      <button class="btn" id="s-save" type="button">保存して読み込む</button>
+    </div>
+    <div class="card">
+      <h2>このアプリについて</h2>
+      <p class="desc">株価と指標はYahoo Financeのデータを毎日1回集めたもの（日本株は日本取引所グループの上場銘柄一覧で社名・業種を付けています）。株価は遅れていることがあり、指標の定義もデータ元のものです。ROEは「EPS÷1株あたり純資産」で出した概算、予想EPS成長は「実績PER÷予想PER−1」で出した概算です。売買の判断はご自身で行ってください。</p>
+      <p class="desc"><a href="../">家計簿アプリへ</a></p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs two" aria-label="画面の切り替え">
+  <button type="button" data-view="screen" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg>スクリーニング
+  </button>
+  <button type="button" data-view="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>設定
+  </button>
+</nav>
+
+<div id="toast" role="status" hidden></div>
+<script src="kabu.js"></script>
+</body>
+</html>
